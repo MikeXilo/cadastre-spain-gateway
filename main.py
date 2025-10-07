@@ -130,7 +130,41 @@ def gml_to_geojson_lite(gml_bytes):
                         # Extract properties
                         cadastral_id = cp_feature.get('{http://www.opengis.net/gml/3.2}id', 'unknown')
                         
-                        feature = Feature(geometry=geojson_polygon, properties={"cadastral_id": cadastral_id})
+                        # Try to extract cadastral reference and area from the feature
+                        cadastral_reference = 'unknown'
+                        area_value = 0.0
+                        
+                        # Look for cadastral reference in various possible locations
+                        ref_elements = [
+                            cp_feature.find(f'{{{CP_NAMESPACE}}}nationalCadastralReference'),
+                            cp_feature.find(f'{{{CP_NAMESPACE}}}localId'),
+                            cp_feature.find(f'{{{CP_NAMESPACE}}}inspireId')
+                        ]
+                        
+                        for ref_elem in ref_elements:
+                            if ref_elem is not None and ref_elem.text:
+                                cadastral_reference = ref_elem.text.strip()
+                                break
+                        
+                        # Look for area value
+                        area_elem = cp_feature.find(f'{{{CP_NAMESPACE}}}areaValue')
+                        if area_elem is not None and area_elem.text:
+                            try:
+                                area_value = float(area_elem.text.strip())
+                            except ValueError:
+                                area_value = 0.0
+                        
+                        # Calculate area in square meters and hectares
+                        area_sqm = area_value if area_value > 0 else 0
+                        area_hectares = area_sqm / 10000 if area_sqm > 0 else 0
+                        
+                        feature = Feature(geometry=geojson_polygon, properties={
+                            "cadastral_id": cadastral_id,
+                            "cadastral_reference": cadastral_reference,
+                            "area_sqm": area_sqm,
+                            "area_hectares": area_hectares,
+                            "country": "spain"
+                        })
                         features.append(feature)
 
         return FeatureCollection(features)
