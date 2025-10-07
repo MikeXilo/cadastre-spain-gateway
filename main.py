@@ -221,6 +221,142 @@ async def get_catastro_plots(
         print(f"Server error during cadastral query: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred processing the Catastro data: {e}")
 
+@app.get("/api/catastro-parcel")
+async def get_catastro_parcel(
+    refcat: str = Query(..., description="14-digit cadastral reference (e.g., 3662001TF3136S)")
+):
+    """
+    Get a specific cadastral parcel by its reference using GetParcel stored query.
+    """
+    try:
+        # Use the GetParcel stored query
+        response = requests.get(
+            CATASTRO_WFS_URL,
+            params={
+                'service': 'wfs',
+                'version': '2',
+                'request': 'getfeature',
+                'STOREDQUERIE_ID': 'GetParcel',
+                'refcat': refcat,
+                'srsname': 'EPSG::25830'
+            },
+            verify=False
+        )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Catastro WFS request failed: {response.status_code}")
+
+        # Process GML into GeoJSON
+        geojson_data = gml_to_geojson_lite(response.content)
+        return geojson_data
+
+    except Exception as e:
+        print(f"Server error during parcel query: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying parcel: {e}")
+
+
+@app.get("/api/catastro-zone")
+async def get_catastro_zone(
+    cod_zona: str = Query(..., description="Zone code (12 digits urban, 9 digits rural)")
+):
+    """
+    Get cadastral zoning information using GetZoning stored query.
+    """
+    try:
+        # Use the GetZoning stored query
+        response = requests.get(
+            CATASTRO_WFS_URL,
+            params={
+                'service': 'wfs',
+                'version': '2',
+                'request': 'getfeature',
+                'STOREDQUERIE_ID': 'GetZoning',
+                'cod_zona': cod_zona,
+                'srsname': 'EPSG::25830'
+            },
+            verify=False
+        )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Catastro WFS request failed: {response.status_code}")
+
+        # Process GML into GeoJSON
+        geojson_data = gml_to_geojson_lite(response.content)
+        return geojson_data
+
+    except Exception as e:
+        print(f"Server error during zone query: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying zone: {e}")
+
+
+@app.get("/api/catastro-parcels-by-zone")
+async def get_catastro_parcels_by_zone(
+    cod_zona: str = Query(..., description="Zone code (12 digits urban, 9 digits rural)")
+):
+    """
+    Get all parcels in a specific zone using GetParcelsByZoning stored query.
+    """
+    try:
+        # Use the GetParcelsByZoning stored query
+        response = requests.get(
+            CATASTRO_WFS_URL,
+            params={
+                'service': 'wfs',
+                'version': '2',
+                'request': 'getfeature',
+                'STOREDQUERIE_ID': 'GetParcelsByZoning',
+                'cod_zona': cod_zona,
+                'srsname': 'EPSG::25830'
+            },
+            verify=False
+        )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Catastro WFS request failed: {response.status_code}")
+
+        # Process GML into GeoJSON
+        geojson_data = gml_to_geojson_lite(response.content)
+        return geojson_data
+
+    except Exception as e:
+        print(f"Server error during parcels by zone query: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying parcels by zone: {e}")
+
+
+@app.get("/api/catastro-neighbors")
+async def get_catastro_neighbors(
+    refcat: str = Query(..., description="14-digit cadastral reference (e.g., 3662001TF3136S)")
+):
+    """
+    Get a parcel and its neighboring parcels using GetNeighbourParcel stored query.
+    """
+    try:
+        # Use the GetNeighbourParcel stored query
+        response = requests.get(
+            CATASTRO_WFS_URL,
+            params={
+                'service': 'wfs',
+                'version': '2',
+                'request': 'getfeature',
+                'STOREDQUERIE_ID': 'GetNeighbourParcel',
+                'refcat': refcat,
+                'srsname': 'EPSG::25830'
+            },
+            verify=False
+        )
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Catastro WFS request failed: {response.status_code}")
+
+        # Process GML into GeoJSON
+        geojson_data = gml_to_geojson_lite(response.content)
+        return geojson_data
+
+    except Exception as e:
+        print(f"Server error during neighbors query: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying neighbors: {e}")
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway"""
